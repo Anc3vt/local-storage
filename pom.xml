@@ -5,12 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.ancevt.util</groupId>
-    <artifactId>fastcache</artifactId>
+    <artifactId>local-storage</artifactId>
     <version>1.0</version>
 
-    <name>fastcache</name>
-    <!-- FIXME change it to the project's website -->
-    <url>https://github.com/Anc3vt/fastcache</url>
+    <name>local-storage</name>
+    <url>https://github.com/Anc3vt/local-storage</url>
 
     <licenses>
         <license>
@@ -29,7 +28,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
 
         <github.global.server>github</github.global.server>
         <github.maven-plugin>0.12</github.maven-plugin>
@@ -58,6 +57,14 @@
             </snapshots>
         </repository>
         <repository>
+            <id>args2-mvn-repo</id>
+            <url>https://raw.github.com/Anc3vt/args2/mvn-repo/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+        <repository>
             <id>ancevt-commons-mvn-repo</id>
             <url>https://raw.github.com/Anc3vt/ancevt-commons/mvn-repo/</url>
             <snapshots>
@@ -80,6 +87,11 @@
             <groupId>com.ancevt.util</groupId>
             <artifactId>texttable</artifactId>
             <version>${texttable.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ancevt.util</groupId>
+            <artifactId>args</artifactId>
+            <version>${args.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -159,7 +171,7 @@
                     <includes>
                         <include>**/*</include>
                     </includes>
-                    <repositoryName>fastcache</repositoryName>
+                    <repositoryName>local-storage</repositoryName>
                     <repositoryOwner>Anc3vt</repositoryOwner>
                 </configuration>
                 <executions>
