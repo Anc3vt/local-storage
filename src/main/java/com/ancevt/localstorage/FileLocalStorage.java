@@ -180,9 +180,23 @@ public class FileLocalStorage implements LocalStorage {
         return this;
     }
 
+    @SneakyThrows
+    @Override
+    public LocalStorage exportTo(Path filePath) {
+        Files.writeString(filePath, stringify());
+        return this;
+    }
+
     @Override
     public LocalStorage exportGroupTo(@NotNull Map<String, String> exportTo, String keyStartsWith) {
         exportTo.putAll(toSortedMapGroup(keyStartsWith));
+        return this;
+    }
+
+    @SneakyThrows
+    @Override
+    public LocalStorage exportGroupTo(Path filePath, String keyStartsWith) {
+        Files.writeString(filePath, stringifyGroup(keyStartsWith));
         return this;
     }
 
@@ -192,10 +206,26 @@ public class FileLocalStorage implements LocalStorage {
         return this;
     }
 
+    @SneakyThrows
+    @Override
+    public LocalStorage importFrom(Path filePath) {
+        Files.readAllLines(filePath).forEach(this::parseLineAndPut);
+        return this;
+    }
+
     @Override
     public LocalStorage importGroupFrom(@NotNull Map<String, String> importFrom, String keyStartsWith) {
         importFrom.forEach((k, v) -> {
             if (k.startsWith(keyStartsWith)) data.put(k, v);
+        });
+        return this;
+    }
+
+    @SneakyThrows
+    @Override
+    public LocalStorage importGroupFrom(Path filePath, String keyStartsWith) {
+        Files.readAllLines(filePath).forEach(line -> {
+            if(line.startsWith(keyStartsWith)) parseLineAndPut(line);
         });
         return this;
     }
@@ -229,17 +259,21 @@ public class FileLocalStorage implements LocalStorage {
 
         System.out.println(dir);
         try {
-            Files.readAllLines(Path.of(dir.toString() + File.separatorChar + getFilename())).forEach(line -> {
-                StringTokenizer stringTokenizer = new StringTokenizer(line, DELIMITER);
-                String key = stringTokenizer.nextToken();
-                String value = stringTokenizer.nextToken();
-                data.put(key, value);
-            });
+            Files.readAllLines(
+                    Path.of(dir.toString() + File.separatorChar + getFilename())
+            ).forEach(this::parseLineAndPut);
         } catch (Exception e) {
             // TODO: log error
             e.printStackTrace();
         }
         return this;
+    }
+
+    private void parseLineAndPut(String line) {
+        StringTokenizer stringTokenizer = new StringTokenizer(line, DELIMITER);
+        String key = stringTokenizer.nextToken();
+        String value = stringTokenizer.nextToken();
+        data.put(key, value);
     }
 
     @SneakyThrows
