@@ -31,6 +31,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.lang.Byte.parseByte;
@@ -47,21 +48,21 @@ public class FileLocalStorage implements LocalStorage {
     private final String filename;
     private final Map<String, String> data;
     private final boolean saveOnWrite;
-    private final String applicationId;
+    private final String storageId;
     private final String directoryPath;
 
     FileLocalStorage(@NotNull String filename,
                      boolean saveOnWrite,
-                     String applicationId,
+                     String storageId,
                      String directoryPath) {
 
         this.filename = filename;
         this.saveOnWrite = saveOnWrite;
-        this.applicationId = applicationId;
+        this.storageId = storageId;
         this.directoryPath = directoryPath;
         data = new ConcurrentHashMap<>();
 
-        Path dir = FilesystemHelper.createOrGetDirectory(this);
+        Path dir = DirectoryHelper.createOrGetDirectory(this);
 
         if (Files.exists(Path.of(dir.toString() + File.separatorChar + filename))) {
             load();
@@ -160,12 +161,6 @@ public class FileLocalStorage implements LocalStorage {
     }
 
     @Override
-    public LocalStorage delete(String key) {
-        data.remove(key);
-        return this;
-    }
-
-    @Override
     public LocalStorage addMap(Map<String, String> map) {
         data.putAll(map);
         if (saveOnWrite) save();
@@ -187,16 +182,29 @@ public class FileLocalStorage implements LocalStorage {
 
     @SneakyThrows
     @Override
-    public LocalStorage delete() {
+    public LocalStorage deleteResources() {
         clear();
-        Files.deleteIfExists(Path.of(filename));
+        Path dir = DirectoryHelper.createOrGetDirectory(this);
+        Files.deleteIfExists(Path.of(dir.toString() + File.separatorChar + filename));
+        return this;
+    }
+
+    @Override
+    public LocalStorage remove(String key) {
+        data.remove(key);
+        return this;
+    }
+
+    @Override
+    public LocalStorage removeGroup(String keyStartsWith) {
+        toSortedMapGroup(keyStartsWith).forEach((k, v) -> remove(k));
         return this;
     }
 
     @SneakyThrows
     @Override
     public LocalStorage load() {
-        Path dir = FilesystemHelper.createOrGetDirectory(this);
+        Path dir = DirectoryHelper.createOrGetDirectory(this);
 
         System.out.println(dir);
         try {
@@ -216,7 +224,7 @@ public class FileLocalStorage implements LocalStorage {
     @SneakyThrows
     @Override
     public void save() {
-        Path dir = FilesystemHelper.createOrGetDirectory(this);
+        Path dir = DirectoryHelper.createOrGetDirectory(this);
         Files.writeString(
                 Path.of(dir.toString() + File.separatorChar + getFilename()),
                 stringify(),
@@ -250,16 +258,40 @@ public class FileLocalStorage implements LocalStorage {
     }
 
     @Override
+    public Map<String, String> toSortedMap() {
+        return new TreeMap<>(toMap());
+    }
+
+    @Override
+    public Map<String, String> toSortedMapGroup(String startsWith) {
+        Map<String, String> map = new TreeMap<>();
+        toMap().forEach((k, v) -> {
+            if (k.startsWith(startsWith)) map.put(k, v);
+        });
+        return map;
+    }
+
+    @Override
     public String toFormattedString() {
-        TextTable textTable = new TextTable(true, "Key", "Value");
-        data.forEach(textTable::addRow);
-        return textTable.render();
+        return toFormattedString(true);
     }
 
     @Override
     public String toFormattedString(boolean decorated) {
         TextTable textTable = new TextTable(decorated, "Key", "Value");
-        data.forEach(textTable::addRow);
+        toSortedMap().forEach(textTable::addRow);
+        return textTable.render();
+    }
+
+    @Override
+    public String toFormattedStringGroup(String keyStartsWith) {
+        return toFormattedStringGroup(keyStartsWith, true);
+    }
+
+    @Override
+    public String toFormattedStringGroup(String keyStartsWith, boolean decorated) {
+        TextTable textTable = new TextTable(decorated, "Key", "Value");
+        toSortedMapGroup(keyStartsWith).forEach(textTable::addRow);
         return textTable.render();
     }
 
@@ -274,15 +306,15 @@ public class FileLocalStorage implements LocalStorage {
     }
 
     @Override
-    public String getApplicationId() {
-        return applicationId;
+    public String getStorageId() {
+        return storageId;
     }
 
     public static void main(String[] args) {
 
         LocalStorage localStorage = new LocalStorageBuilder("localstorage", FileLocalStorage.class)
                 .saveOnWrite(false)
-                .applicationId(LocalStorage.class.getName())
+                .storageId(FileLocalStorage.class.getName())
                 .build();
 
         Scanner scanner = new Scanner(System.in);
@@ -307,8 +339,32 @@ public class FileLocalStorage implements LocalStorage {
                     case "ls" -> {
                         System.out.println(localStorage.toFormattedString());
                     }
+                    case "lsg" -> {
+                        String keyStartsWith = tokens.next();
+                        System.out.println(localStorage.toFormattedStringGroup(keyStartsWith));
+                    }
                     case "save" -> {
                         localStorage.save();
+                    }
+                    case "rm" -> {
+                        String key = tokens.next();
+                        localStorage.remove(key);
+                    }
+                    case "rmg" -> {
+                        String keyStartsWith = tokens.next();
+                        localStorage.removeGroup(keyStartsWith);
+                    }
+                    case "delete" -> {
+                        localStorage.deleteResources();
+                    }
+                    case "cls" -> {
+                        for (int i = 0; i < 100; i++) {
+                            System.out.println();
+                        }
+                    }
+
+                    default -> {
+                        System.err.println("Unknown command: " + command);
                     }
                 }
             } catch (Exception e) {

@@ -45,8 +45,6 @@ public interface LocalStorage {
 
     LocalStorage putAll(Map<String, String> map);
 
-    LocalStorage delete(String key);
-
     LocalStorage addMap(Map<String, String> map);
 
     LocalStorage clear();
@@ -55,7 +53,11 @@ public interface LocalStorage {
 
     LocalStorage load();
 
-    LocalStorage delete();
+    LocalStorage deleteResources();
+
+    LocalStorage remove(String key);
+
+    LocalStorage removeGroup(String keyStartsWith);
 
     void save();
 
@@ -65,13 +67,21 @@ public interface LocalStorage {
 
     Map<String, String> toMap();
 
+    Map<String, String> toSortedMap();
+
+    Map<String, String> toSortedMapGroup(String startsWith);
+
     String toFormattedString();
 
     String toFormattedString(boolean decorated);
+
+    String toFormattedStringGroup(String keyStartsWith);
+
+    String toFormattedStringGroup(String keyStartsWith, boolean decorated);
 
     String getDirectoryPath();
 
     String getFilename();
 
-    String getApplicationId();
+    String getStorageId();
 }

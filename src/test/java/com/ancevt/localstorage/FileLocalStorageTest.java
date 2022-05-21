@@ -17,7 +17,7 @@
  */
 package com.ancevt.localstorage;
 
-public class LocalStorageTest {
+public class FileLocalStorageTest {
 
 
 }

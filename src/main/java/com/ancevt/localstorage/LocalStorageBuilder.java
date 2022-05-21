@@ -7,7 +7,7 @@ public class LocalStorageBuilder {
     private final Class<? extends LocalStorage> type;
     private final String filename;
     private boolean saveOnWrite = false;
-    private String applicationId = LocalStorage.class.getName();
+    private String storageId = LocalStorage.class.getName();
     private String directoryPath = null;
 
     /**
@@ -29,8 +29,8 @@ public class LocalStorageBuilder {
         return this;
     }
 
-    public LocalStorageBuilder applicationId(String applicationId) {
-        this.applicationId = applicationId;
+    public LocalStorageBuilder storageId(String storageId) {
+        this.storageId = storageId;
         return this;
     }
 
@@ -39,7 +39,7 @@ public class LocalStorageBuilder {
             return (LocalStorage) type.getDeclaredConstructors()[0].newInstance(
                     filename,
                     saveOnWrite,
-                    applicationId,
+                    storageId,
                     directoryPath
             );
         } catch (IllegalAccessException |

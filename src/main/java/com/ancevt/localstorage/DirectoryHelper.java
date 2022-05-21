@@ -25,19 +25,19 @@ import java.nio.file.Path;
 
 import static com.ancevt.commons.platformdepend.OsDetector.isWindows;
 
-class FilesystemHelper {
+class DirectoryHelper {
 
     @SneakyThrows
-    static Path createOrGetDirectory(@NotNull LocalStorage localStorage) {
-        if (localStorage.getDirectoryPath() == null && localStorage.getApplicationId() != null) {
+    static @NotNull Path createOrGetDirectory(@NotNull LocalStorage localStorage) {
+        if (localStorage.getDirectoryPath() == null && localStorage.getStorageId() != null) {
 
             String homeDir = System.getProperty("user.home");
 
             Path dir;
             if (isWindows()) {
-                dir = Path.of(homeDir + "\\AppData\\Roaming\\" + localStorage.getApplicationId());
+                dir = Path.of(homeDir + "\\AppData\\Roaming\\" + localStorage.getStorageId());
             } else {
-                dir = Path.of(homeDir + "/.local/share/" + localStorage.getApplicationId());
+                dir = Path.of(homeDir + "/.local/share/" + localStorage.getStorageId());
             }
 
             if (!Files.exists(dir)) {
@@ -46,7 +46,29 @@ class FilesystemHelper {
 
             return dir;
         } else {
-            return Path.of("./");
+            Path dir = Path.of(localStorage.getDirectoryPath());
+            if (!Files.exists(dir)) {
+                Files.createDirectories(dir);
+            }
+            return dir;
+        }
+    }
+
+    @SneakyThrows
+    static void deleteDirectory(@NotNull LocalStorage localStorage) {
+        if (localStorage.getDirectoryPath() == null && localStorage.getStorageId() != null) {
+            String homeDir = System.getProperty("user.home");
+
+            Path dir;
+            if (isWindows()) {
+                dir = Path.of(homeDir + "\\AppData\\Roaming\\" + localStorage.getStorageId());
+            } else {
+                dir = Path.of(homeDir + "/.local/share/" + localStorage.getStorageId());
+            }
+
+            if (!Files.exists(dir)) {
+                Files.deleteIfExists(dir);
+            }
         }
     }
 }

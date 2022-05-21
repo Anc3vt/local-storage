@@ -43,6 +43,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.lang.Byte.parseByte;
@@ -62,23 +63,23 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     private final String filename;
     private final Map<String, String> data;
     private final boolean saveOnWrite;
-    private final String applicationId;
+    private final String storageId;
     private final String directoryPath;
     private final EncryptionHelper encryptionHelper;
 
     EncryptedFileLocalStorage(@NotNull String filename,
                               boolean saveOnWrite,
-                              String applicationId,
+                              String storageId,
                               String directoryPath) {
 
         this.filename = filename;
         this.saveOnWrite = saveOnWrite;
-        this.applicationId = applicationId;
+        this.storageId = storageId;
         this.directoryPath = directoryPath;
         data = new ConcurrentHashMap<>();
         encryptionHelper = new EncryptionHelper(this);
 
-        Path dir = FilesystemHelper.createOrGetDirectory(this);
+        Path dir = DirectoryHelper.createOrGetDirectory(this);
 
         if (Files.exists(Path.of(dir.toString() + File.separatorChar + filename))) {
             if (encryptionHelper.keyPairExists()) {
@@ -183,12 +184,6 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     }
 
     @Override
-    public LocalStorage delete(String key) {
-        data.remove(key);
-        return this;
-    }
-
-    @Override
     public LocalStorage addMap(Map<String, String> map) {
         data.putAll(map);
         if (saveOnWrite) save();
@@ -210,16 +205,18 @@ public class EncryptedFileLocalStorage implements LocalStorage {
 
     @SneakyThrows
     @Override
-    public LocalStorage delete() {
+    public LocalStorage deleteResources() {
         clear();
-        Files.deleteIfExists(Path.of(getFilename()));
+        Path dir = DirectoryHelper.createOrGetDirectory(this);
+        encryptionHelper.deleteKeys();
+        Files.deleteIfExists(Path.of(dir.toString() + File.separatorChar + filename));
         return this;
     }
 
     @SneakyThrows
     @Override
     public LocalStorage load() {
-        Path dir = FilesystemHelper.createOrGetDirectory(this);
+        Path dir = DirectoryHelper.createOrGetDirectory(this);
 
         String decrypt = encryptionHelper.decrypt(Files.readAllBytes(Path.of(dir.toString() + File.separatorChar + getFilename())));
         decrypt.lines().forEach(line -> {
@@ -234,7 +231,7 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     @SneakyThrows
     @Override
     public void save() {
-        Path dir = FilesystemHelper.createOrGetDirectory(this);
+        Path dir = DirectoryHelper.createOrGetDirectory(this);
 
         Files.write(
                 Path.of(dir.toString() + File.separatorChar + getFilename()),
@@ -268,6 +265,32 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     }
 
     @Override
+    public Map<String, String> toSortedMap() {
+        return new TreeMap<>(toMap());
+    }
+
+    @Override
+    public Map<String, String> toSortedMapGroup(String startsWith) {
+        Map<String, String> map = new TreeMap<>();
+        toMap().forEach((k, v) -> {
+            if (k.startsWith(startsWith)) map.put(k, v);
+        });
+        return map;
+    }
+
+    @Override
+    public LocalStorage remove(String key) {
+        data.remove(key);
+        return this;
+    }
+
+    @Override
+    public LocalStorage removeGroup(String keyStartsWith) {
+        toSortedMapGroup(keyStartsWith).forEach((k, v) -> remove(k));
+        return this;
+    }
+
+    @Override
     public String toFormattedString() {
         TextTable textTable = new TextTable(true, "Key", "Value");
         data.forEach(textTable::addRow);
@@ -282,6 +305,18 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     }
 
     @Override
+    public String toFormattedStringGroup(String keyStartsWith) {
+        return toFormattedStringGroup(keyStartsWith, true);
+    }
+
+    @Override
+    public String toFormattedStringGroup(String keyStartsWith, boolean decorated) {
+        TextTable textTable = new TextTable(decorated, "Key", "Value");
+        toSortedMapGroup(keyStartsWith).forEach(textTable::addRow);
+        return textTable.render();
+    }
+
+    @Override
     public String getDirectoryPath() {
         return directoryPath;
     }
@@ -292,8 +327,8 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     }
 
     @Override
-    public String getApplicationId() {
-        return applicationId;
+    public String getStorageId() {
+        return storageId;
     }
 
     private static class EncryptionHelper {
@@ -319,7 +354,7 @@ public class EncryptedFileLocalStorage implements LocalStorage {
 
         @SneakyThrows
         private void generateKeyPairIfNotExists() {
-            Path dir = FilesystemHelper.createOrGetDirectory(encryptedFileLocalStorage);
+            Path dir = DirectoryHelper.createOrGetDirectory(encryptedFileLocalStorage);
 
             privateKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.filename + ".rsa");
             publicKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.filename + ".rsa.pub");
@@ -338,8 +373,14 @@ public class EncryptedFileLocalStorage implements LocalStorage {
         }
 
         @SneakyThrows
+        public void deleteKeys() {
+            Files.deleteIfExists(publicKeyPath);
+            Files.deleteIfExists(privateKeyPath);
+        }
+
+        @SneakyThrows
         public boolean keyPairExists() {
-            Path dir = FilesystemHelper.createOrGetDirectory(encryptedFileLocalStorage);
+            Path dir = DirectoryHelper.createOrGetDirectory(encryptedFileLocalStorage);
 
             privateKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.filename + ".rsa");
             publicKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.filename + ".rsa.pub");
@@ -437,7 +478,7 @@ public class EncryptedFileLocalStorage implements LocalStorage {
 
         LocalStorage localStorage = new LocalStorageBuilder("localstorage", EncryptedFileLocalStorage.class)
                 .saveOnWrite(false)
-                .applicationId(LocalStorage.class.getName())
+                .storageId(EncryptedFileLocalStorage.class.getName())
                 .build();
 
         Scanner scanner = new Scanner(System.in);
@@ -462,15 +503,37 @@ public class EncryptedFileLocalStorage implements LocalStorage {
                     case "ls" -> {
                         System.out.println(localStorage.toFormattedString());
                     }
+                    case "lsg" -> {
+                        String keyStartsWith = tokens.next();
+                        System.out.println(localStorage.toFormattedStringGroup(keyStartsWith));
+                    }
                     case "save" -> {
                         localStorage.save();
+                    }
+                    case "rm" -> {
+                        String key = tokens.next();
+                        localStorage.remove(key);
+                    }
+                    case "rmg" -> {
+                        String keyStartsWith = tokens.next();
+                        localStorage.removeGroup(keyStartsWith);
+                    }
+                    case "delete" -> {
+                        localStorage.deleteResources();
+                    }
+                    case "cls" -> {
+                        for (int i = 0; i < 100; i++) {
+                            System.out.println();
+                        }
+                    }
+
+                    default -> {
+                        System.err.println("Unknown command: " + command);
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
         }
     }
-
 }
