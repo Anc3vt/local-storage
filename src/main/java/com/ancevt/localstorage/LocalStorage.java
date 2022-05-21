@@ -49,7 +49,9 @@ public interface LocalStorage {
 
     LocalStorage clear();
 
-    LocalStorage exportTo(@NotNull Map<String, String> map);
+    LocalStorage exportTo(@NotNull Map<String, String> exportTo);
+
+    LocalStorage importFrom(@NotNull Map<String, String> importFrom);
 
     LocalStorage load();
 
@@ -62,6 +64,8 @@ public interface LocalStorage {
     void save();
 
     String stringify();
+
+    String stringifyGroup(String keyStartsWith);
 
     int getItemCount();
 

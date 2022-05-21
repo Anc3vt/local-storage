@@ -198,8 +198,14 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     }
 
     @Override
-    public LocalStorage exportTo(@NotNull Map<String, String> map) {
-        map.putAll(toMap());
+    public LocalStorage exportTo(@NotNull Map<String, String> exportTo) {
+        exportTo.putAll(toMap());
+        return this;
+    }
+
+    @Override
+    public LocalStorage importFrom(@NotNull Map<String, String> importFrom) {
+        data.putAll(importFrom);
         return this;
     }
 
@@ -246,7 +252,19 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     @Override
     public String stringify() {
         StringBuilder stringBuilder = new StringBuilder();
-        data.forEach((key, value) -> stringBuilder
+        toSortedMap().forEach((key, value) -> stringBuilder
+                .append(key)
+                .append(DELIMITER)
+                .append(value)
+                .append('\n')
+        );
+        return stringBuilder.toString();
+    }
+
+    @Override
+    public String stringifyGroup(String keyStartsWith) {
+        StringBuilder stringBuilder = new StringBuilder();
+        toSortedMapGroup(keyStartsWith).forEach((key, value) -> stringBuilder
                 .append(key)
                 .append(DELIMITER)
                 .append(value)
