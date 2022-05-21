@@ -23,6 +23,7 @@ import com.ancevt.util.texttable.TextTable;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,21 +40,30 @@ import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 import static java.lang.Short.parseShort;
 
-public class FileLocalStorage extends LocalStorage {
+public class FileLocalStorage implements LocalStorage {
 
-    private static final String EXTENSION = ".ls";
     private static final String DELIMITER = "=";
 
-    private final String name;
+    private final String filename;
     private final Map<String, String> data;
     private final boolean saveOnWrite;
+    private final String applicationId;
+    private final String directoryPath;
 
-    FileLocalStorage(@NotNull String name, boolean saveOnWrite) {
-        this.name = name;
+    FileLocalStorage(@NotNull String filename,
+                     boolean saveOnWrite,
+                     String applicationId,
+                     String directoryPath) {
+
+        this.filename = filename;
         this.saveOnWrite = saveOnWrite;
+        this.applicationId = applicationId;
+        this.directoryPath = directoryPath;
         data = new ConcurrentHashMap<>();
 
-        if (Files.exists(Path.of(name + EXTENSION))) {
+        Path dir = FilesystemHelper.createOrGetDirectory(this);
+
+        if (Files.exists(Path.of(dir.toString() + File.separatorChar + filename))) {
             load();
         }
     }
@@ -179,38 +189,42 @@ public class FileLocalStorage extends LocalStorage {
     @Override
     public LocalStorage delete() {
         clear();
-        Files.deleteIfExists(Path.of(name + EXTENSION));
+        Files.deleteIfExists(Path.of(filename));
         return this;
     }
 
     @SneakyThrows
     @Override
     public LocalStorage load() {
-        Files.readAllLines(Path.of(getName() + EXTENSION)).forEach(line -> {
-            StringTokenizer stringTokenizer = new StringTokenizer(line, DELIMITER);
-            String key = stringTokenizer.nextToken();
-            String value = stringTokenizer.nextToken();
-            data.put(key, value);
-        });
+        Path dir = FilesystemHelper.createOrGetDirectory(this);
+
+        System.out.println(dir);
+        try {
+            Files.readAllLines(Path.of(dir.toString() + File.separatorChar + getFilename())).forEach(line -> {
+                StringTokenizer stringTokenizer = new StringTokenizer(line, DELIMITER);
+                String key = stringTokenizer.nextToken();
+                String value = stringTokenizer.nextToken();
+                data.put(key, value);
+            });
+        } catch (Exception e) {
+            // TODO: log error
+            e.printStackTrace();
+        }
         return this;
     }
 
     @SneakyThrows
     @Override
     public void save() {
+        Path dir = FilesystemHelper.createOrGetDirectory(this);
         Files.writeString(
-                Path.of(getName() + EXTENSION),
+                Path.of(dir.toString() + File.separatorChar + getFilename()),
                 stringify(),
                 StandardCharsets.UTF_8,
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING
         );
-    }
-
-    @Override
-    public String getName() {
-        return name;
     }
 
     @Override
@@ -249,7 +263,28 @@ public class FileLocalStorage extends LocalStorage {
         return textTable.render();
     }
 
+    @Override
+    public String getDirectoryPath() {
+        return directoryPath;
+    }
+
+    @Override
+    public String getFilename() {
+        return filename;
+    }
+
+    @Override
+    public String getApplicationId() {
+        return applicationId;
+    }
+
     public static void main(String[] args) {
+
+        LocalStorage localStorage = new LocalStorageBuilder("localstorage", FileLocalStorage.class)
+                .saveOnWrite(false)
+                .applicationId(LocalStorage.class.getName())
+                .build();
+
         Scanner scanner = new Scanner(System.in);
 
         while (scanner.hasNextLine()) {
@@ -263,14 +298,17 @@ public class FileLocalStorage extends LocalStorage {
                         StringTokenizer stringTokenizer = new StringTokenizer(keyValue, "=");
                         String key = stringTokenizer.nextToken();
                         String value = stringTokenizer.nextToken();
-                        LocalStorage.lookup().put(key, value);
+                        localStorage.put(key, value);
                     }
                     case "get" -> {
                         String key = tokens.next();
-                        System.out.println(key + "=" + LocalStorage.lookup().getString(key));
+                        System.out.println(localStorage.getString(key));
                     }
                     case "ls" -> {
-                        System.out.println(LocalStorage.lookup().toFormattedString());
+                        System.out.println(localStorage.toFormattedString());
+                    }
+                    case "save" -> {
+                        localStorage.save();
                     }
                 }
             } catch (Exception e) {
@@ -279,4 +317,5 @@ public class FileLocalStorage extends LocalStorage {
 
         }
     }
+
 }

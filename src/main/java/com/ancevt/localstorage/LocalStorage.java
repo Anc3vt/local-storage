@@ -19,90 +19,59 @@ package com.ancevt.localstorage;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-abstract public class LocalStorage {
+public interface LocalStorage {
 
-    private static final LocalStorageSettings settings = new LocalStorageSettings();
-    private static final Map<String, LocalStorage> storages = new ConcurrentHashMap<>();
+    String getString(String key);
 
-    public static LocalStorageSettings getSettings() {
-        return settings;
-    }
+    int getInt(String key, int defaultValue);
 
-    abstract public String getString(String key);
+    long getLong(String key, long defaultValue);
 
-    abstract public int getInt(String key, int defaultValue);
+    boolean getBoolean(String key, boolean defaultValue);
 
-    abstract public long getLong(String key, long defaultValue);
+    byte getByte(String key, byte defaultValue);
 
-    abstract public boolean getBoolean(String key, boolean defaultValue);
+    short getShort(String key, short defaultValue);
 
-    abstract public byte getByte(String key, byte defaultValue);
+    char getChar(String key, char defaultValue);
 
-    abstract public short getShort(String key, short defaultValue);
+    float getFloat(String key, float defaultValue);
 
-    abstract public char getChar(String key, char defaultValue);
+    double getDouble(String key, double defaultValue);
 
-    abstract public float getFloat(String key, float defaultValue);
+    LocalStorage put(String key, Object value);
 
-    abstract public double getDouble(String key, double defaultValue);
+    LocalStorage putAll(Map<String, String> map);
 
-    abstract public LocalStorage put(String key, Object value);
+    LocalStorage delete(String key);
 
-    abstract public LocalStorage putAll(Map<String, String> map);
+    LocalStorage addMap(Map<String, String> map);
 
-    abstract public LocalStorage delete(String key);
+    LocalStorage clear();
 
-    abstract public LocalStorage addMap(Map<String, String> map);
+    LocalStorage exportTo(@NotNull Map<String, String> map);
 
-    abstract public LocalStorage clear();
+    LocalStorage load();
 
-    abstract public LocalStorage exportTo(@NotNull Map<String, String> map);
+    LocalStorage delete();
 
-    abstract public LocalStorage load();
+    void save();
 
-    abstract public LocalStorage delete();
+    String stringify();
 
-    abstract public void save();
+    int getItemCount();
 
-    abstract public String getName();
+    Map<String, String> toMap();
 
-    abstract public String stringify();
+    String toFormattedString();
 
-    abstract public int getItemCount();
+    String toFormattedString(boolean decorated);
 
-    abstract public Map<String, String> toMap();
+    String getDirectoryPath();
 
-    abstract public String toFormattedString();
+    String getFilename();
 
-    abstract public String toFormattedString(boolean decorated);
-
-    public static @NotNull LocalStorage lookup() {
-        return lookup(settings.getDefaultLocalStorageName(), settings.isDefaultSaveOnWrite());
-    }
-
-    public static @NotNull LocalStorage lookup(boolean saveOnWrite) {
-        return lookup(settings.getDefaultLocalStorageName(), saveOnWrite);
-    }
-
-    public static @NotNull LocalStorage lookup(String name) {
-        return lookup(name, settings.isDefaultSaveOnWrite());
-    }
-
-    public static @NotNull LocalStorage lookup(String name, boolean saveOnWrite) {
-        return storages.computeIfAbsent(name, localStorageName -> {
-            Class<? extends LocalStorage> clazz = settings.getLocalStorageClass();
-            try {
-                return clazz.getDeclaredConstructor(String.class, boolean.class).newInstance(localStorageName, saveOnWrite);
-            } catch (NoSuchMethodException |
-                    IllegalAccessException |
-                    InstantiationException |
-                    InvocationTargetException e) {
-                throw new LocalStorageException(e);
-            }
-        });
-    }
+    String getApplicationId();
 }
