@@ -51,7 +51,11 @@ public interface LocalStorage {
 
     LocalStorage exportTo(@NotNull Map<String, String> exportTo);
 
+    LocalStorage exportGroupTo(@NotNull Map<String, String> exportTo, String keyStartsWith);
+
     LocalStorage importFrom(@NotNull Map<String, String> importFrom);
+
+    LocalStorage importGroupFrom(@NotNull Map<String, String> importFrom, String keyStartsWith);
 
     LocalStorage load();
 

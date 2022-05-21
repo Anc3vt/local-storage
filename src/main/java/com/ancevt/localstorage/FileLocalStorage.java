@@ -181,8 +181,22 @@ public class FileLocalStorage implements LocalStorage {
     }
 
     @Override
+    public LocalStorage exportGroupTo(@NotNull Map<String, String> exportTo, String keyStartsWith) {
+        exportTo.putAll(toSortedMapGroup(keyStartsWith));
+        return this;
+    }
+
+    @Override
     public LocalStorage importFrom(@NotNull Map<String, String> importFrom) {
         data.putAll(importFrom);
+        return this;
+    }
+
+    @Override
+    public LocalStorage importGroupFrom(@NotNull Map<String, String> importFrom, String keyStartsWith) {
+        importFrom.forEach((k, v) -> {
+            if (k.startsWith(keyStartsWith)) data.put(k, v);
+        });
         return this;
     }
 
