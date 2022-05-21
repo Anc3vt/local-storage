@@ -45,6 +45,7 @@ import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import static java.lang.Byte.parseByte;
 import static java.lang.Double.parseDouble;
@@ -93,8 +94,23 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     }
 
     @Override
+    public boolean contains(String key) {
+        return data.containsKey(key);
+    }
+
+    @Override
+    public String computeIfAbsent(String key, Function<String, String> mappingFunction) {
+        return data.computeIfAbsent(key, mappingFunction);
+    }
+
+    @Override
     public String getString(String key) {
         return data.get(key);
+    }
+
+    @Override
+    public String getString(String key, String defaultValue) {
+        return data.getOrDefault(key, defaultValue);
     }
 
     @Override
@@ -203,9 +219,23 @@ public class EncryptedFileLocalStorage implements LocalStorage {
         return this;
     }
 
+    @SneakyThrows
+    @Override
+    public LocalStorage exportTo(Path filePath) {
+        Files.writeString(filePath, stringify(), StandardCharsets.UTF_8, CREATE, WRITE, TRUNCATE_EXISTING);
+        return this;
+    }
+
     @Override
     public LocalStorage exportGroupTo(@NotNull Map<String, String> exportTo, String keyStartsWith) {
         exportTo.putAll(toSortedMapGroup(keyStartsWith));
+        return this;
+    }
+
+    @SneakyThrows
+    @Override
+    public LocalStorage exportGroupTo(Path filePath, String keyStartsWith) {
+        Files.writeString(filePath, stringifyGroup(keyStartsWith), StandardCharsets.UTF_8, CREATE, WRITE, TRUNCATE_EXISTING);
         return this;
     }
 
@@ -215,12 +245,35 @@ public class EncryptedFileLocalStorage implements LocalStorage {
         return this;
     }
 
+    @SneakyThrows
+    @Override
+    public LocalStorage importFrom(Path filePath) {
+        Files.readAllLines(filePath).forEach(this::parseLineAndPut);
+        return this;
+    }
+
     @Override
     public LocalStorage importGroupFrom(@NotNull Map<String, String> importFrom, String keyStartsWith) {
         importFrom.forEach((k, v) -> {
             if (k.startsWith(keyStartsWith)) data.put(k, v);
         });
         return this;
+    }
+
+    @SneakyThrows
+    @Override
+    public LocalStorage importGroupFrom(Path filePath, String keyStartsWith) {
+        Files.readAllLines(filePath).forEach(line -> {
+            if (line.startsWith(keyStartsWith)) parseLineAndPut(line);
+        });
+        return this;
+    }
+
+    private void parseLineAndPut(String line) {
+        StringTokenizer stringTokenizer = new StringTokenizer(line, DELIMITER);
+        String key = stringTokenizer.nextToken();
+        String value = stringTokenizer.nextToken();
+        data.put(key, value);
     }
 
     @SneakyThrows

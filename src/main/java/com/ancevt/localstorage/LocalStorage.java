@@ -19,11 +19,21 @@ package com.ancevt.localstorage;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public interface LocalStorage {
 
+
+    boolean contains(String key);
+
+    String computeIfAbsent(String key, Function<String, String> mappingFunction);
+
     String getString(String key);
+
+    String getString(String key, String defaultValue);
 
     int getInt(String key, int defaultValue);
 
@@ -51,11 +61,19 @@ public interface LocalStorage {
 
     LocalStorage exportTo(@NotNull Map<String, String> exportTo);
 
+    LocalStorage exportTo(Path filePath);
+
     LocalStorage exportGroupTo(@NotNull Map<String, String> exportTo, String keyStartsWith);
+
+    LocalStorage exportGroupTo(Path filePath, String keyStartsWith);
 
     LocalStorage importFrom(@NotNull Map<String, String> importFrom);
 
+    LocalStorage importFrom(Path filePath);
+
     LocalStorage importGroupFrom(@NotNull Map<String, String> importFrom, String keyStartsWith);
+
+    LocalStorage importGroupFrom(Path filePath, String keyStartsWith);
 
     LocalStorage load();
 
