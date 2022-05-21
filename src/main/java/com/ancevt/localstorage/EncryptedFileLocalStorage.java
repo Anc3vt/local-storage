@@ -210,6 +210,7 @@ public class EncryptedFileLocalStorage implements LocalStorage {
         Path dir = DirectoryHelper.createOrGetDirectory(this);
         encryptionHelper.deleteKeys();
         Files.deleteIfExists(Path.of(dir.toString() + File.separatorChar + filename));
+        DirectoryHelper.deleteDirectoryIfEmpty(this);
         return this;
     }
 
@@ -478,6 +479,7 @@ public class EncryptedFileLocalStorage implements LocalStorage {
 
         LocalStorage localStorage = new LocalStorageBuilder("localstorage", EncryptedFileLocalStorage.class)
                 .saveOnWrite(false)
+                .directoryPath("./_storage/")
                 .storageId(EncryptedFileLocalStorage.class.getName())
                 .build();
 

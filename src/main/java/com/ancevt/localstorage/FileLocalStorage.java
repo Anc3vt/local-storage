@@ -186,6 +186,7 @@ public class FileLocalStorage implements LocalStorage {
         clear();
         Path dir = DirectoryHelper.createOrGetDirectory(this);
         Files.deleteIfExists(Path.of(dir.toString() + File.separatorChar + filename));
+        DirectoryHelper.deleteDirectoryIfEmpty(this);
         return this;
     }
 

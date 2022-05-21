@@ -20,6 +20,8 @@ package com.ancevt.localstorage;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -46,7 +48,7 @@ class DirectoryHelper {
 
             return dir;
         } else {
-            Path dir = Path.of(localStorage.getDirectoryPath());
+            Path dir = Path.of(localStorage.getDirectoryPath() + File.separatorChar + localStorage.getStorageId());
             if (!Files.exists(dir)) {
                 Files.createDirectories(dir);
             }
@@ -55,7 +57,7 @@ class DirectoryHelper {
     }
 
     @SneakyThrows
-    static void deleteDirectory(@NotNull LocalStorage localStorage) {
+    static void deleteDirectoryIfEmpty(@NotNull LocalStorage localStorage) {
         if (localStorage.getDirectoryPath() == null && localStorage.getStorageId() != null) {
             String homeDir = System.getProperty("user.home");
 
@@ -66,9 +68,25 @@ class DirectoryHelper {
                 dir = Path.of(homeDir + "/.local/share/" + localStorage.getStorageId());
             }
 
-            if (!Files.exists(dir)) {
+            if (!Files.exists(dir) && isDirectoryEmpty(dir)) {
                 Files.deleteIfExists(dir);
             }
+        } else {
+            Path dir = Path.of(localStorage.getDirectoryPath() + File.separatorChar + localStorage.getStorageId());
+            if (Files.exists(dir) && isDirectoryEmpty(dir)) Files.deleteIfExists(dir);
+            dir = Path.of(localStorage.getDirectoryPath());
+            if (Files.exists(dir) && isDirectoryEmpty(dir)) Files.deleteIfExists(dir);
         }
+    }
+
+    @SneakyThrows
+    static boolean isDirectoryEmpty(Path path) {
+        if (Files.isDirectory(path)) {
+            try (DirectoryStream<Path> directory = Files.newDirectoryStream(path)) {
+                return !directory.iterator().hasNext();
+            }
+        }
+
+        return false;
     }
 }
