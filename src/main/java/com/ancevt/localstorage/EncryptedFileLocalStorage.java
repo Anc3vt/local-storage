@@ -19,7 +19,6 @@ package com.ancevt.localstorage;
 
 
 import com.ancevt.util.args.Args;
-import com.ancevt.util.texttable.TextTable;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,32 +39,15 @@ import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
-import static java.lang.Byte.parseByte;
-import static java.lang.Double.parseDouble;
-import static java.lang.Float.parseFloat;
-import static java.lang.Integer.parseInt;
-import static java.lang.Long.parseLong;
-import static java.lang.Short.parseShort;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
 
-public class EncryptedFileLocalStorage implements LocalStorage {
+public class EncryptedFileLocalStorage extends LocalStorage {
 
-    private static final String DELIMITER = "=";
-
-    private final String filename;
-    private final Map<String, String> data;
-    private final boolean saveOnWrite;
-    private final String storageId;
-    private final String directoryPath;
     private final EncryptionHelper encryptionHelper;
 
     EncryptedFileLocalStorage(@NotNull String filename,
@@ -73,11 +55,8 @@ public class EncryptedFileLocalStorage implements LocalStorage {
                               String storageId,
                               String directoryPath) {
 
-        this.filename = filename;
-        this.saveOnWrite = saveOnWrite;
-        this.storageId = storageId;
-        this.directoryPath = directoryPath;
-        data = new ConcurrentHashMap<>();
+        super(filename, saveOnWrite, storageId, directoryPath);
+
         encryptionHelper = new EncryptionHelper(this);
 
         Path dir = DirectoryHelper.createOrGetDirectory(this);
@@ -93,208 +72,13 @@ public class EncryptedFileLocalStorage implements LocalStorage {
         }
     }
 
-    @Override
-    public boolean contains(String key) {
-        return data.containsKey(key);
-    }
-
-    @Override
-    public String computeIfAbsent(String key, Function<String, String> mappingFunction) {
-        return data.computeIfAbsent(key, mappingFunction);
-    }
-
-    @Override
-    public String getString(String key) {
-        return data.get(key);
-    }
-
-    @Override
-    public String getString(String key, String defaultValue) {
-        return data.getOrDefault(key, defaultValue);
-    }
-
-    @Override
-    public int getInt(String key, int defaultValue) {
-        try {
-            return parseInt(getString(key));
-        } catch (Exception ex) {
-            return defaultValue;
-        }
-    }
-
-    @Override
-    public long getLong(String key, long defaultValue) {
-        try {
-            return parseLong(getString(key));
-        } catch (Exception ex) {
-            return defaultValue;
-        }
-    }
-
-    @Override
-    public boolean getBoolean(String key, boolean defaultValue) {
-        try {
-            return getString(key).equalsIgnoreCase("true");
-        } catch (Exception ex) {
-            return defaultValue;
-        }
-    }
-
-    @Override
-    public byte getByte(String key, byte defaultValue) {
-        try {
-            return parseByte(getString(key));
-        } catch (Exception ex) {
-            return defaultValue;
-        }
-    }
-
-    @Override
-    public short getShort(String key, short defaultValue) {
-        try {
-            return parseShort(getString(key));
-        } catch (Exception ex) {
-            return defaultValue;
-        }
-    }
-
-    @Override
-    public char getChar(String key, char defaultValue) {
-        try {
-            return getString(key).charAt(0);
-        } catch (Exception ex) {
-            return defaultValue;
-        }
-    }
-
-    @Override
-    public float getFloat(String key, float defaultValue) {
-        try {
-            return parseFloat(getString(key));
-        } catch (Exception ex) {
-            return defaultValue;
-        }
-    }
-
-    @Override
-    public double getDouble(String key, double defaultValue) {
-        try {
-            return parseDouble(getString(key));
-        } catch (Exception ex) {
-            return defaultValue;
-        }
-    }
-
-    @Override
-    public LocalStorage parse(@NotNull String source) {
-        source.lines().forEach(this::parseLine);
-        return this;
-    }
-
-    @Override
-    public LocalStorage parseLine(@NotNull String line) {
-        System.out.println(">" + line + "<");
-
-        if (!line.equals("=")) throw new LocalStorageException("No \"=\" in local storage line: %s".formatted(line));
-
-        StringTokenizer stringTokenizer = new StringTokenizer(line, DELIMITER);
-        String key = stringTokenizer.nextToken();
-        String value = stringTokenizer.nextToken();
-        data.put(key, value);
-        return this;
-    }
-
-    @Override
-    public LocalStorage put(String key, Object value) {
-        data.put(key, String.valueOf(value));
-        if (saveOnWrite) save();
-        return this;
-    }
-
-    @Override
-    public LocalStorage putAll(Map<String, String> map) {
-        data.putAll(map);
-        if (saveOnWrite) save();
-        return this;
-    }
-
-    @Override
-    public LocalStorage addMap(Map<String, String> map) {
-        data.putAll(map);
-        if (saveOnWrite) save();
-        return this;
-    }
-
-    @Override
-    public LocalStorage clear() {
-        data.clear();
-        if (saveOnWrite) save();
-        return this;
-    }
-
-    @Override
-    public LocalStorage exportTo(@NotNull Map<String, String> exportTo) {
-        exportTo.putAll(toMap());
-        return this;
-    }
-
-    @SneakyThrows
-    @Override
-    public LocalStorage exportTo(Path filePath) {
-        Files.writeString(filePath, stringify(), StandardCharsets.UTF_8, CREATE, WRITE, TRUNCATE_EXISTING);
-        return this;
-    }
-
-    @Override
-    public LocalStorage exportGroupTo(@NotNull Map<String, String> exportTo, String keyStartsWith) {
-        exportTo.putAll(toSortedMapGroup(keyStartsWith));
-        return this;
-    }
-
-    @SneakyThrows
-    @Override
-    public LocalStorage exportGroupTo(Path filePath, String keyStartsWith) {
-        Files.writeString(filePath, stringifyGroup(keyStartsWith), StandardCharsets.UTF_8, CREATE, WRITE, TRUNCATE_EXISTING);
-        return this;
-    }
-
-    @Override
-    public LocalStorage importFrom(@NotNull Map<String, String> importFrom) {
-        data.putAll(importFrom);
-        return this;
-    }
-
-    @SneakyThrows
-    @Override
-    public LocalStorage importFrom(Path filePath) {
-        Files.readAllLines(filePath).forEach(this::parseLine);
-        return this;
-    }
-
-    @Override
-    public LocalStorage importGroupFrom(@NotNull Map<String, String> importFrom, String keyStartsWith) {
-        importFrom.forEach((k, v) -> {
-            if (k.startsWith(keyStartsWith)) data.put(k, v);
-        });
-        return this;
-    }
-
-    @SneakyThrows
-    @Override
-    public LocalStorage importGroupFrom(Path filePath, String keyStartsWith) {
-        Files.readAllLines(filePath).forEach(line -> {
-            if (line.startsWith(keyStartsWith)) parseLine(line);
-        });
-        return this;
-    }
-
     @SneakyThrows
     @Override
     public LocalStorage deleteResources() {
         clear();
         Path dir = DirectoryHelper.createOrGetDirectory(this);
         encryptionHelper.deleteKeys();
-        Files.deleteIfExists(Path.of(dir.toString() + File.separatorChar + filename));
+        Files.deleteIfExists(Path.of(dir.toString() + File.separatorChar + getFilename()));
         DirectoryHelper.deleteDirectoryIfEmpty(this);
         return this;
     }
@@ -328,107 +112,6 @@ public class EncryptedFileLocalStorage implements LocalStorage {
         );
     }
 
-    @Override
-    public String stringify() {
-        StringBuilder stringBuilder = new StringBuilder();
-        toSortedMap().forEach((key, value) -> stringBuilder
-                .append(key)
-                .append(DELIMITER)
-                .append(value)
-                .append('\n')
-        );
-        return stringBuilder.toString();
-    }
-
-    @Override
-    public String stringifyGroup(String keyStartsWith) {
-        StringBuilder stringBuilder = new StringBuilder();
-        toSortedMapGroup(keyStartsWith).forEach((key, value) -> stringBuilder
-                .append(key)
-                .append(DELIMITER)
-                .append(value)
-                .append('\n')
-        );
-        return stringBuilder.toString();
-    }
-
-    @Override
-    public int getItemCount() {
-        return data.size();
-    }
-
-    @Override
-    public Map<String, String> toMap() {
-        return Map.copyOf(data);
-    }
-
-    @Override
-    public Map<String, String> toSortedMap() {
-        return new TreeMap<>(toMap());
-    }
-
-    @Override
-    public Map<String, String> toSortedMapGroup(String startsWith) {
-        Map<String, String> map = new TreeMap<>();
-        toMap().forEach((k, v) -> {
-            if (k.startsWith(startsWith)) map.put(k, v);
-        });
-        return map;
-    }
-
-    @Override
-    public LocalStorage remove(String key) {
-        data.remove(key);
-        return this;
-    }
-
-    @Override
-    public LocalStorage removeGroup(String keyStartsWith) {
-        toSortedMapGroup(keyStartsWith).forEach((k, v) -> remove(k));
-        return this;
-    }
-
-    @Override
-    public String toFormattedString() {
-        TextTable textTable = new TextTable(true, "Key", "Value");
-        data.forEach(textTable::addRow);
-        return textTable.render();
-    }
-
-    @Override
-    public String toFormattedString(boolean decorated) {
-        TextTable textTable = new TextTable(decorated, "Key", "Value");
-        data.forEach(textTable::addRow);
-        return textTable.render();
-    }
-
-    @Override
-    public String toFormattedStringGroup(String keyStartsWith) {
-        return toFormattedStringGroup(keyStartsWith, true);
-    }
-
-    @Override
-    public String toFormattedStringGroup(String keyStartsWith, boolean decorated) {
-        TextTable textTable = new TextTable(decorated, "Key", "Value");
-        toSortedMapGroup(keyStartsWith).forEach(textTable::addRow);
-        return textTable.render();
-    }
-
-    @Override
-    public String getDirectoryPath() {
-        return directoryPath;
-    }
-
-    @Override
-    public String getFilename() {
-        return filename;
-    }
-
-    @Override
-    public String getStorageId() {
-        return storageId;
-    }
-
     private static class EncryptionHelper {
 
         private static final int KEY_SIZE = 2048;
@@ -454,8 +137,8 @@ public class EncryptedFileLocalStorage implements LocalStorage {
         private void generateKeyPairIfNotExists() {
             Path dir = DirectoryHelper.createOrGetDirectory(encryptedFileLocalStorage);
 
-            privateKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.filename + ".rsa");
-            publicKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.filename + ".rsa.pub");
+            privateKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.getFilename() + ".rsa");
+            publicKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.getFilename() + ".rsa.pub");
 
             if (!Files.exists(privateKeyPath) || !Files.exists(publicKeyPath)) {
                 KeyPairGenerator generator = KeyPairGenerator.getInstance(ALGORITHM);
@@ -480,8 +163,8 @@ public class EncryptedFileLocalStorage implements LocalStorage {
         public boolean keyPairExists() {
             Path dir = DirectoryHelper.createOrGetDirectory(encryptedFileLocalStorage);
 
-            privateKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.filename + ".rsa");
-            publicKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.filename + ".rsa.pub");
+            privateKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.getFilename() + ".rsa");
+            publicKeyPath = Path.of(dir.toString() + File.separatorChar + encryptedFileLocalStorage.getFilename() + ".rsa.pub");
 
             return Files.exists(privateKeyPath) && Files.exists(publicKeyPath);
         }
