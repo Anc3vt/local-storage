@@ -186,6 +186,25 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     }
 
     @Override
+    public LocalStorage parse(@NotNull String source) {
+        source.lines().forEach(this::parseLine);
+        return this;
+    }
+
+    @Override
+    public LocalStorage parseLine(@NotNull String line) {
+        System.out.println(">" + line + "<");
+
+        if (!line.equals("=")) throw new LocalStorageException("No \"=\" in local storage line: %s".formatted(line));
+
+        StringTokenizer stringTokenizer = new StringTokenizer(line, DELIMITER);
+        String key = stringTokenizer.nextToken();
+        String value = stringTokenizer.nextToken();
+        data.put(key, value);
+        return this;
+    }
+
+    @Override
     public LocalStorage put(String key, Object value) {
         data.put(key, String.valueOf(value));
         if (saveOnWrite) save();
@@ -248,7 +267,7 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     @SneakyThrows
     @Override
     public LocalStorage importFrom(Path filePath) {
-        Files.readAllLines(filePath).forEach(this::parseLineAndPut);
+        Files.readAllLines(filePath).forEach(this::parseLine);
         return this;
     }
 
@@ -264,16 +283,9 @@ public class EncryptedFileLocalStorage implements LocalStorage {
     @Override
     public LocalStorage importGroupFrom(Path filePath, String keyStartsWith) {
         Files.readAllLines(filePath).forEach(line -> {
-            if (line.startsWith(keyStartsWith)) parseLineAndPut(line);
+            if (line.startsWith(keyStartsWith)) parseLine(line);
         });
         return this;
-    }
-
-    private void parseLineAndPut(String line) {
-        StringTokenizer stringTokenizer = new StringTokenizer(line, DELIMITER);
-        String key = stringTokenizer.nextToken();
-        String value = stringTokenizer.nextToken();
-        data.put(key, value);
     }
 
     @SneakyThrows

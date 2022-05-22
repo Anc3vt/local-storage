@@ -22,7 +22,6 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public interface LocalStorage {
 
@@ -50,6 +49,10 @@ public interface LocalStorage {
     float getFloat(String key, float defaultValue);
 
     double getDouble(String key, double defaultValue);
+
+    LocalStorage parse(String source);
+
+    LocalStorage parseLine(@NotNull String line);
 
     LocalStorage put(String key, Object value);
 

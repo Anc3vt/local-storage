@@ -34,7 +34,6 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static java.lang.Byte.parseByte;
 import static java.lang.Double.parseDouble;
@@ -167,6 +166,12 @@ public class FileLocalStorage implements LocalStorage {
     }
 
     @Override
+    public LocalStorage parse(@NotNull String source) {
+        source.lines().forEach(this::parseLine);
+        return this;
+    }
+
+    @Override
     public LocalStorage put(String key, Object value) {
         data.put(key, String.valueOf(value));
         if (saveOnWrite) save();
@@ -229,7 +234,7 @@ public class FileLocalStorage implements LocalStorage {
     @SneakyThrows
     @Override
     public LocalStorage importFrom(Path filePath) {
-        Files.readAllLines(filePath).forEach(this::parseLineAndPut);
+        Files.readAllLines(filePath).forEach(this::parseLine);
         return this;
     }
 
@@ -245,7 +250,7 @@ public class FileLocalStorage implements LocalStorage {
     @Override
     public LocalStorage importGroupFrom(Path filePath, String keyStartsWith) {
         Files.readAllLines(filePath).forEach(line -> {
-            if (line.startsWith(keyStartsWith)) parseLineAndPut(line);
+            if (line.startsWith(keyStartsWith)) parseLine(line);
         });
         return this;
     }
@@ -281,7 +286,7 @@ public class FileLocalStorage implements LocalStorage {
         try {
             Files.readAllLines(
                     Path.of(dir.toString() + File.separatorChar + getFilename())
-            ).forEach(this::parseLineAndPut);
+            ).forEach(this::parseLine);
         } catch (Exception e) {
             // TODO: log error
             e.printStackTrace();
@@ -289,11 +294,31 @@ public class FileLocalStorage implements LocalStorage {
         return this;
     }
 
-    private void parseLineAndPut(String line) {
-        StringTokenizer stringTokenizer = new StringTokenizer(line, DELIMITER);
-        String key = stringTokenizer.nextToken();
-        String value = stringTokenizer.nextToken();
+    @Override
+    public LocalStorage parseLine(@NotNull String line) {
+        if (line.trim().equals("")) return this;
+
+        if (line.trim().startsWith(DELIMITER))
+            throw new LocalStorageException("local store line starts with \"%s\": %s".formatted(DELIMITER, line));
+
+        if (!line.contains(DELIMITER))
+            throw new LocalStorageException("No \"%s\" in local storage line: %s".formatted(DELIMITER, line));
+
+        String[] split = line.split(DELIMITER, 2);
+        String key = split[0].trim();
+        String value = split[1].trim();
+
+        if (value.equals("null")) {
+            data.remove(key);
+            return this;
+        } else if (value.equals("\"\"")) {
+            value = "";
+        } else if (value.startsWith("\"") && value.endsWith("\"") && !value.equals("\"")) {
+            value = value.substring(1, value.length() - 1);
+        }
+
         data.put(key, value);
+        return this;
     }
 
     @SneakyThrows
