@@ -60,27 +60,27 @@ abstract public class LocalStorage {
         this.directoryPath = directoryPath;
         data = new ConcurrentHashMap<>();
     }
-    
+
     public boolean contains(String key) {
         return data.containsKey(key);
     }
 
-    
+
     public String computeIfAbsent(String key, Function<String, String> mappingFunction) {
         return data.computeIfAbsent(key, mappingFunction);
     }
 
-    
+
     public String getString(String key) {
         return data.get(key);
     }
 
-    
+
     public String getString(String key, String defaultValue) {
         return data.getOrDefault(key, defaultValue);
     }
 
-    
+
     public int getInt(String key, int defaultValue) {
         try {
             return parseInt(getString(key));
@@ -89,7 +89,7 @@ abstract public class LocalStorage {
         }
     }
 
-    
+
     public long getLong(String key, long defaultValue) {
         try {
             return parseLong(getString(key));
@@ -98,7 +98,7 @@ abstract public class LocalStorage {
         }
     }
 
-    
+
     public boolean getBoolean(String key, boolean defaultValue) {
         try {
             return getString(key).equalsIgnoreCase("true");
@@ -107,7 +107,7 @@ abstract public class LocalStorage {
         }
     }
 
-    
+
     public byte getByte(String key, byte defaultValue) {
         try {
             return parseByte(getString(key));
@@ -116,7 +116,7 @@ abstract public class LocalStorage {
         }
     }
 
-    
+
     public short getShort(String key, short defaultValue) {
         try {
             return parseShort(getString(key));
@@ -125,7 +125,7 @@ abstract public class LocalStorage {
         }
     }
 
-    
+
     public char getChar(String key, char defaultValue) {
         try {
             return getString(key).charAt(0);
@@ -134,7 +134,7 @@ abstract public class LocalStorage {
         }
     }
 
-    
+
     public float getFloat(String key, float defaultValue) {
         try {
             return parseFloat(getString(key));
@@ -143,7 +143,7 @@ abstract public class LocalStorage {
         }
     }
 
-    
+
     public double getDouble(String key, double defaultValue) {
         try {
             return parseDouble(getString(key));
@@ -152,80 +152,80 @@ abstract public class LocalStorage {
         }
     }
 
-    
+
     public LocalStorage parse(@NotNull String source) {
         source.lines().forEach(this::parseLine);
         return this;
     }
 
-    
+
     public LocalStorage put(String key, Object value) {
         data.put(key, String.valueOf(value));
         if (saveOnWrite) save();
         return this;
     }
 
-    
+
     public LocalStorage putAll(Map<String, String> map) {
         data.putAll(map);
         if (saveOnWrite) save();
         return this;
     }
 
-    
+
     public LocalStorage addMap(Map<String, String> map) {
         data.putAll(map);
         if (saveOnWrite) save();
         return this;
     }
 
-    
+
     public LocalStorage clear() {
         data.clear();
         if (saveOnWrite) save();
         return this;
     }
 
-    
+
     public LocalStorage exportTo(@NotNull Map<String, String> exportTo) {
         exportTo.putAll(toMap());
         return this;
     }
 
     @SneakyThrows
-    
+
     public LocalStorage exportTo(Path filePath) {
         Files.writeString(filePath, stringify(), StandardCharsets.UTF_8, CREATE, WRITE, TRUNCATE_EXISTING);
         return this;
     }
 
-    
+
     public LocalStorage exportGroupTo(@NotNull Map<String, String> exportTo, String keyStartsWith) {
         exportTo.putAll(toSortedMapGroup(keyStartsWith));
         return this;
     }
 
     @SneakyThrows
-    
+
     public LocalStorage exportGroupTo(Path filePath, String keyStartsWith) {
         Files.writeString(filePath, stringifyGroup(keyStartsWith), StandardCharsets.UTF_8, CREATE, WRITE, TRUNCATE_EXISTING);
         return this;
     }
 
-    
+
     public LocalStorage importFrom(@NotNull Map<String, String> importFrom) {
         data.putAll(importFrom);
         return this;
     }
 
     @SneakyThrows
-    
+
     public LocalStorage importFrom(Path filePath) {
         Files.readAllLines(filePath).forEach(this::parseLine);
         return this;
     }
 
-    
+
     public LocalStorage importGroupFrom(@NotNull Map<String, String> importFrom, String keyStartsWith) {
         importFrom.forEach((k, v) -> {
             if (k.startsWith(keyStartsWith)) data.put(k, v);
@@ -234,7 +234,7 @@ abstract public class LocalStorage {
     }
 
     @SneakyThrows
-    
+
     public LocalStorage importGroupFrom(Path filePath, String keyStartsWith) {
         Files.readAllLines(filePath).forEach(line -> {
             if (line.startsWith(keyStartsWith)) parseLine(line);
@@ -242,19 +242,19 @@ abstract public class LocalStorage {
         return this;
     }
 
-    
+
     public LocalStorage remove(String key) {
         data.remove(key);
         return this;
     }
 
-    
+
     public LocalStorage removeGroup(String keyStartsWith) {
         toSortedMapGroup(keyStartsWith).forEach((k, v) -> remove(k));
         return this;
     }
 
-    
+
     public LocalStorage parseLine(@NotNull String line) {
         if (line.trim().equals("")) return this;
 
@@ -281,7 +281,7 @@ abstract public class LocalStorage {
         return this;
     }
 
-    
+
     public String stringify() {
         StringBuilder stringBuilder = new StringBuilder();
         toSortedMap().forEach((key, value) -> stringBuilder
@@ -293,7 +293,7 @@ abstract public class LocalStorage {
         return stringBuilder.toString();
     }
 
-    
+
     public String stringifyGroup(String keyStartsWith) {
         StringBuilder stringBuilder = new StringBuilder();
         toSortedMapGroup(keyStartsWith).forEach((key, value) -> stringBuilder
@@ -305,22 +305,22 @@ abstract public class LocalStorage {
         return stringBuilder.toString();
     }
 
-    
+
     public int getItemCount() {
         return data.size();
     }
 
-    
+
     public Map<String, String> toMap() {
         return Map.copyOf(data);
     }
 
-    
+
     public Map<String, String> toSortedMap() {
         return new TreeMap<>(toMap());
     }
 
-    
+
     public Map<String, String> toSortedMapGroup(String startsWith) {
         Map<String, String> map = new TreeMap<>();
         toMap().forEach((k, v) -> {
@@ -329,46 +329,48 @@ abstract public class LocalStorage {
         return map;
     }
 
-    
+
     public String toFormattedString() {
         return toFormattedString(true);
     }
 
-    
+
     public String toFormattedString(boolean decorated) {
         TextTable textTable = new TextTable(decorated, "Key", "Value");
         toSortedMap().forEach(textTable::addRow);
         return textTable.render();
     }
 
-    
+
     public String toFormattedStringGroup(String keyStartsWith) {
         return toFormattedStringGroup(keyStartsWith, true);
     }
 
-    
+
     public String toFormattedStringGroup(String keyStartsWith, boolean decorated) {
         TextTable textTable = new TextTable(decorated, "Key", "Value");
         toSortedMapGroup(keyStartsWith).forEach(textTable::addRow);
         return textTable.render();
     }
 
-    
+
     public String getDirectoryPath() {
         return directoryPath;
     }
 
-    
+
     public String getFilename() {
         return filename;
     }
 
-    
+
     public String getStorageId() {
         return storageId;
     }
 
-    abstract void save();
-    abstract LocalStorage load();
-    abstract LocalStorage deleteResources();
+    abstract public void save();
+
+    abstract public LocalStorage load();
+
+    abstract public LocalStorage deleteResources();
 }
