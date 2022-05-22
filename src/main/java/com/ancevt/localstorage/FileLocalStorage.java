@@ -66,7 +66,6 @@ public class FileLocalStorage extends LocalStorage {
     public LocalStorage load() {
         Path dir = DirectoryHelper.createOrGetDirectory(this);
 
-        System.out.println(dir);
         try {
             Files.readAllLines(
                     Path.of(dir.toString() + File.separatorChar + getFilename())
@@ -132,6 +131,12 @@ public class FileLocalStorage extends LocalStorage {
                         String keyStartsWith = tokens.next();
                         localStorage.removeGroup(keyStartsWith);
                     }
+                    case "clear" -> {
+                        localStorage.clear();
+                    }
+                    case "load" -> {
+                        localStorage.load();
+                    }
                     case "delete" -> {
                         localStorage.deleteResources();
                     }
@@ -139,6 +144,24 @@ public class FileLocalStorage extends LocalStorage {
                         for (int i = 0; i < 100; i++) {
                             System.out.println();
                         }
+                    }
+                    case "filename" -> {
+                        System.out.println(localStorage.getFilename());
+                    }
+                    case "id" -> {
+                        System.out.println(localStorage.getStorageId());
+                    }
+                    case "dir" -> {
+                        System.out.println(localStorage.getDirectoryPath());
+                    }
+                    case "count" -> {
+                        System.out.println(localStorage.getItemCount());
+                    }
+                    case "export" -> {
+                        localStorage.exportTo(Path.of(tokens.next()));
+                    }
+                    case "import" -> {
+                        localStorage.importFrom(Path.of(tokens.next()));
                     }
 
                     default -> {
