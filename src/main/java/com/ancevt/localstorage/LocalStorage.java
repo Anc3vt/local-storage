@@ -17,22 +17,17 @@
  */
 package com.ancevt.localstorage;
 
-
-import com.ancevt.util.args.Args;
 import com.ancevt.util.texttable.TextTable;
 import lombok.SneakyThrows;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Map;
-import java.util.Properties;
-import java.util.Scanner;
-import java.util.StringTokenizer;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import static java.lang.Byte.parseByte;
 import static java.lang.Double.parseDouble;
@@ -40,29 +35,52 @@ import static java.lang.Float.parseFloat;
 import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 import static java.lang.Short.parseShort;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.nio.file.StandardOpenOption.WRITE;
 
-public class LocalStorage {
+abstract public class LocalStorage {
 
-    private static final String DEFAULT_FASTCACHE_FILENAME = "localstorage";
-    private static final String EXTENSION = ".ls";
-    private static final String DELIMITER = "=";
-    private static final Map<String, LocalStorage> storages = new ConcurrentHashMap<>();
-    private static boolean defaultSaveOnWrite = true;
+    protected static final String DELIMITER = "=";
 
-    private final String name;
-    private final Map<String, String> data;
+    protected final Map<String, String> data;
+
+    private final String filename;
     private final boolean saveOnWrite;
+    private final String storageId;
+    private final String directoryPath;
 
-    private LocalStorage(@NotNull String name, boolean saveOnWrite) {
-        this.name = name;
+    public LocalStorage(@NotNull String filename,
+                        boolean saveOnWrite,
+                        String storageId,
+                        String directoryPath) {
+        this.filename = filename;
         this.saveOnWrite = saveOnWrite;
+        this.storageId = storageId;
+        this.directoryPath = directoryPath;
         data = new ConcurrentHashMap<>();
     }
+    
+    public boolean contains(String key) {
+        return data.containsKey(key);
+    }
 
+    
+    public String computeIfAbsent(String key, Function<String, String> mappingFunction) {
+        return data.computeIfAbsent(key, mappingFunction);
+    }
+
+    
     public String getString(String key) {
         return data.get(key);
     }
 
+    
+    public String getString(String key, String defaultValue) {
+        return data.getOrDefault(key, defaultValue);
+    }
+
+    
     public int getInt(String key, int defaultValue) {
         try {
             return parseInt(getString(key));
@@ -71,6 +89,7 @@ public class LocalStorage {
         }
     }
 
+    
     public long getLong(String key, long defaultValue) {
         try {
             return parseLong(getString(key));
@@ -79,6 +98,7 @@ public class LocalStorage {
         }
     }
 
+    
     public boolean getBoolean(String key, boolean defaultValue) {
         try {
             return getString(key).equalsIgnoreCase("true");
@@ -87,6 +107,7 @@ public class LocalStorage {
         }
     }
 
+    
     public byte getByte(String key, byte defaultValue) {
         try {
             return parseByte(getString(key));
@@ -95,6 +116,7 @@ public class LocalStorage {
         }
     }
 
+    
     public short getShort(String key, short defaultValue) {
         try {
             return parseShort(getString(key));
@@ -103,6 +125,7 @@ public class LocalStorage {
         }
     }
 
+    
     public char getChar(String key, char defaultValue) {
         try {
             return getString(key).charAt(0);
@@ -111,6 +134,7 @@ public class LocalStorage {
         }
     }
 
+    
     public float getFloat(String key, float defaultValue) {
         try {
             return parseFloat(getString(key));
@@ -119,6 +143,7 @@ public class LocalStorage {
         }
     }
 
+    
     public double getDouble(String key, double defaultValue) {
         try {
             return parseDouble(getString(key));
@@ -127,191 +152,223 @@ public class LocalStorage {
         }
     }
 
+    
+    public LocalStorage parse(@NotNull String source) {
+        source.lines().forEach(this::parseLine);
+        return this;
+    }
+
+    
     public LocalStorage put(String key, Object value) {
         data.put(key, String.valueOf(value));
         if (saveOnWrite) save();
         return this;
     }
 
+    
     public LocalStorage putAll(Map<String, String> map) {
         data.putAll(map);
         if (saveOnWrite) save();
         return this;
     }
 
-    public LocalStorage remove(String key) {
-        data.remove(key);
-        return this;
-    }
-
+    
     public LocalStorage addMap(Map<String, String> map) {
         data.putAll(map);
         if (saveOnWrite) save();
         return this;
     }
 
+    
     public LocalStorage clear() {
         data.clear();
         if (saveOnWrite) save();
         return this;
     }
 
-    public LocalStorage storeTo(@NotNull Map<String, String> map) {
-        map.putAll(toMap());
+    
+    public LocalStorage exportTo(@NotNull Map<String, String> exportTo) {
+        exportTo.putAll(toMap());
         return this;
     }
 
     @SneakyThrows
-    public LocalStorage load() {
-        Files.readAllLines(Path.of(getName() + EXTENSION)).forEach(line -> {
-            StringTokenizer stringTokenizer = new StringTokenizer(DELIMITER);
-            String key = stringTokenizer.nextToken();
-            String value = stringTokenizer.nextToken();
-            data.put(key, value);
+    
+    public LocalStorage exportTo(Path filePath) {
+        Files.writeString(filePath, stringify(), StandardCharsets.UTF_8, CREATE, WRITE, TRUNCATE_EXISTING);
+        return this;
+    }
+
+    
+    public LocalStorage exportGroupTo(@NotNull Map<String, String> exportTo, String keyStartsWith) {
+        exportTo.putAll(toSortedMapGroup(keyStartsWith));
+        return this;
+    }
+
+    @SneakyThrows
+    
+    public LocalStorage exportGroupTo(Path filePath, String keyStartsWith) {
+        Files.writeString(filePath, stringifyGroup(keyStartsWith), StandardCharsets.UTF_8, CREATE, WRITE, TRUNCATE_EXISTING);
+        return this;
+    }
+
+    
+    public LocalStorage importFrom(@NotNull Map<String, String> importFrom) {
+        data.putAll(importFrom);
+        return this;
+    }
+
+    @SneakyThrows
+    
+    public LocalStorage importFrom(Path filePath) {
+        Files.readAllLines(filePath).forEach(this::parseLine);
+        return this;
+    }
+
+    
+    public LocalStorage importGroupFrom(@NotNull Map<String, String> importFrom, String keyStartsWith) {
+        importFrom.forEach((k, v) -> {
+            if (k.startsWith(keyStartsWith)) data.put(k, v);
         });
         return this;
     }
 
     @SneakyThrows
-    public void save() {
-        Files.writeString(
-                Path.of(getName() + EXTENSION),
-                stringify(),
-                StandardCharsets.UTF_8,
-                StandardOpenOption.WRITE,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING
-        );
+    
+    public LocalStorage importGroupFrom(Path filePath, String keyStartsWith) {
+        Files.readAllLines(filePath).forEach(line -> {
+            if (line.startsWith(keyStartsWith)) parseLine(line);
+        });
+        return this;
     }
 
-    public String getName() {
-        return name;
+    
+    public LocalStorage remove(String key) {
+        data.remove(key);
+        return this;
     }
 
+    
+    public LocalStorage removeGroup(String keyStartsWith) {
+        toSortedMapGroup(keyStartsWith).forEach((k, v) -> remove(k));
+        return this;
+    }
+
+    
+    public LocalStorage parseLine(@NotNull String line) {
+        if (line.trim().equals("")) return this;
+
+        if (line.trim().startsWith(DELIMITER))
+            throw new LocalStorageException("local store line starts with \"%s\": %s".formatted(DELIMITER, line));
+
+        if (!line.contains(DELIMITER))
+            throw new LocalStorageException("No \"%s\" in local storage line: %s".formatted(DELIMITER, line));
+
+        String[] split = line.split(DELIMITER, 2);
+        String key = split[0].trim();
+        String value = split[1].trim();
+
+        if (value.equals("null")) {
+            data.remove(key);
+            return this;
+        } else if (value.equals("\"\"")) {
+            value = "";
+        } else if (value.startsWith("\"") && value.endsWith("\"") && !value.equals("\"")) {
+            value = value.substring(1, value.length() - 1);
+        }
+
+        data.put(key, value);
+        return this;
+    }
+
+    
     public String stringify() {
         StringBuilder stringBuilder = new StringBuilder();
-        data.forEach((key, value) -> {
-            stringBuilder
-                    .append(key)
-                    .append(DELIMITER)
-                    .append(value)
-                    .append('\n');
-        });
+        toSortedMap().forEach((key, value) -> stringBuilder
+                .append(key)
+                .append(DELIMITER)
+                .append(value)
+                .append('\n')
+        );
         return stringBuilder.toString();
     }
 
+    
+    public String stringifyGroup(String keyStartsWith) {
+        StringBuilder stringBuilder = new StringBuilder();
+        toSortedMapGroup(keyStartsWith).forEach((key, value) -> stringBuilder
+                .append(key)
+                .append(DELIMITER)
+                .append(value)
+                .append('\n')
+        );
+        return stringBuilder.toString();
+    }
+
+    
     public int getItemCount() {
         return data.size();
     }
 
+    
     public Map<String, String> toMap() {
         return Map.copyOf(data);
     }
 
-    public String toFormattedString() {
-        TextTable textTable = new TextTable(true, "Key", "Value");
-        data.forEach(textTable::addRow);
-        return textTable.render();
+    
+    public Map<String, String> toSortedMap() {
+        return new TreeMap<>(toMap());
     }
 
+    
+    public Map<String, String> toSortedMapGroup(String startsWith) {
+        Map<String, String> map = new TreeMap<>();
+        toMap().forEach((k, v) -> {
+            if (k.startsWith(startsWith)) map.put(k, v);
+        });
+        return map;
+    }
+
+    
+    public String toFormattedString() {
+        return toFormattedString(true);
+    }
+
+    
     public String toFormattedString(boolean decorated) {
         TextTable textTable = new TextTable(decorated, "Key", "Value");
-        data.forEach(textTable::addRow);
+        toSortedMap().forEach(textTable::addRow);
         return textTable.render();
     }
 
-    public static void setDefaultSaveOnWrite(boolean defaultSaveOnWrite) {
-        LocalStorage.defaultSaveOnWrite = defaultSaveOnWrite;
+    
+    public String toFormattedStringGroup(String keyStartsWith) {
+        return toFormattedStringGroup(keyStartsWith, true);
     }
 
-    @Contract(value = " -> new", pure = true)
-    public static @NotNull LocalStorage lookup() {
-        return lookup(DEFAULT_FASTCACHE_FILENAME, defaultSaveOnWrite);
+    
+    public String toFormattedStringGroup(String keyStartsWith, boolean decorated) {
+        TextTable textTable = new TextTable(decorated, "Key", "Value");
+        toSortedMapGroup(keyStartsWith).forEach(textTable::addRow);
+        return textTable.render();
     }
 
-    @Contract(value = "_ -> new", pure = true)
-    public static @NotNull LocalStorage lookup(String name) {
-        return storages.computeIfAbsent(name, localStorageName -> new LocalStorage(localStorageName, defaultSaveOnWrite));
+    
+    public String getDirectoryPath() {
+        return directoryPath;
     }
 
-    public static @NotNull LocalStorage lookup(boolean saveOnWrite) {
-        return lookup(DEFAULT_FASTCACHE_FILENAME, saveOnWrite);
+    
+    public String getFilename() {
+        return filename;
     }
 
-    public static @NotNull LocalStorage lookup(String name, boolean saveOnWrite) {
-        return storages.computeIfAbsent(name, localStorageName -> new LocalStorage(localStorageName, saveOnWrite));
+    
+    public String getStorageId() {
+        return storageId;
     }
 
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-
-        while (scanner.hasNextLine()) {
-            try {
-
-                Args tokens = new Args(scanner.nextLine());
-                String command = tokens.next();
-
-                switch (command) {
-                    case "set" -> {
-                        String keyValue = tokens.next();
-                        StringTokenizer stringTokenizer = new StringTokenizer(keyValue, "=");
-                        String key = stringTokenizer.nextToken();
-                        String value = stringTokenizer.nextToken();
-                        LocalStorage.lookup().put(key, value);
-                    }
-                    case "get" -> {
-                        String key = tokens.next();
-                        System.out.println(key + "=" + LocalStorage.lookup().getString(key));
-                    }
-                    case "ls" -> {
-                        System.out.println(LocalStorage.lookup().toFormattedString());
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-        }
-    }
+    abstract void save();
+    abstract LocalStorage load();
+    abstract LocalStorage deleteResources();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

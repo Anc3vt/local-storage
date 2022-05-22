@@ -6,7 +6,7 @@
 
     <groupId>com.ancevt.util</groupId>
     <artifactId>local-storage</artifactId>
-    <version>1.0</version>
+    <version>1.1.1</version>
 
     <name>local-storage</name>
     <url>https://github.com/Anc3vt/local-storage</url>
@@ -33,13 +33,14 @@
         <github.global.server>github</github.global.server>
         <github.maven-plugin>0.12</github.maven-plugin>
 
-        <commons.version>1.0.0.3</commons.version>
+        <ancevt-commons.version>1.0.0.4</ancevt-commons.version>
         <args.version>2.0.4</args.version>
         <texttable.version>0.0.1</texttable.version>
         <lombok.version>1.18.24</lombok.version>
         <annotations.version>23.0.0</annotations.version>
         <junit-jupiter-api.version>5.8.2</junit-jupiter-api.version>
         <hamcrest-junit.version>2.0.0.0</hamcrest-junit.version>
+        <java-keyring.version>1.0.0</java-keyring.version>
 
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
@@ -84,6 +85,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.ancevt.commons</groupId>
+            <artifactId>ancevt-commons</artifactId>
+            <version>${ancevt-commons.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.ancevt.util</groupId>
             <artifactId>texttable</artifactId>
             <version>${texttable.version}</version>
@@ -92,6 +98,11 @@
             <groupId>com.ancevt.util</groupId>
             <artifactId>args</artifactId>
             <version>${args.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.east301</groupId>
+            <artifactId>java-keyring</artifactId>
+            <version>${java-keyring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
