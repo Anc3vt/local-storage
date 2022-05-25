@@ -368,7 +368,7 @@ abstract public class LocalStorage {
         return storageId;
     }
 
-    abstract void save();
-    abstract LocalStorage load();
-    abstract LocalStorage deleteResources();
+    abstract public void save();
+    abstract public LocalStorage load();
+    abstract public LocalStorage deleteResources();
 }
