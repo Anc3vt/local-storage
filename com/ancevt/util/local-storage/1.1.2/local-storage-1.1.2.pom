@@ -34,7 +34,7 @@
         <github.maven-plugin>0.12</github.maven-plugin>
 
         <ancevt-commons.version>1.0.0.4</ancevt-commons.version>
-        <args.version>2.0.4</args.version>
+        <args.version>2.1.0</args.version>
         <texttable.version>0.0.1</texttable.version>
         <lombok.version>1.18.24</lombok.version>
         <annotations.version>23.0.0</annotations.version>
