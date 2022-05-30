@@ -26,25 +26,6 @@
         </developer>
     </developers>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>17</java.version>
-
-        <ancevt-commons.version>1.0.0.4</ancevt-commons.version>
-        <args.version>2.1.0</args.version>
-        <texttable.version>0.0.1</texttable.version>
-        <lombok.version>1.18.24</lombok.version>
-        <annotations.version>23.0.0</annotations.version>
-        <junit-jupiter-api.version>5.8.2</junit-jupiter-api.version>
-        <hamcrest-junit.version>2.0.0.0</hamcrest-junit.version>
-        <java-keyring.version>1.0.0</java-keyring.version>
-
-        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-        <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
-        <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-    </properties>
-
     <distributionManagement>
         <repository>
             <id>ancevt</id>
@@ -76,6 +57,25 @@
             </snapshots>
         </repository>
     </repositories>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>17</java.version>
+
+        <ancevt-commons.version>1.0.0.4</ancevt-commons.version>
+        <args.version>2.1.0</args.version>
+        <texttable.version>0.0.1</texttable.version>
+        <lombok.version>1.18.24</lombok.version>
+        <annotations.version>23.0.0</annotations.version>
+        <junit-jupiter-api.version>5.8.2</junit-jupiter-api.version>
+        <hamcrest-junit.version>2.0.0.0</hamcrest-junit.version>
+        <java-keyring.version>1.0.0</java-keyring.version>
+
+        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
+        <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
+        <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
+    </properties>
 
     <dependencies>
         <dependency>
