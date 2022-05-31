@@ -69,7 +69,6 @@
         <annotations.version>23.0.0</annotations.version>
         <junit-jupiter-api.version>5.8.2</junit-jupiter-api.version>
         <hamcrest-junit.version>2.0.0.0</hamcrest-junit.version>
-        <java-keyring.version>1.0.0</java-keyring.version>
 
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
@@ -92,11 +91,6 @@
             <groupId>com.ancevt.util</groupId>
             <artifactId>args</artifactId>
             <version>${args.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>net.east301</groupId>
-            <artifactId>java-keyring</artifactId>
-            <version>${java-keyring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
