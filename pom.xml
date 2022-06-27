@@ -64,7 +64,7 @@
 
         <ancevt-commons.version>1.0.0.4</ancevt-commons.version>
         <args.version>2.1.0</args.version>
-        <texttable.version>0.0.1</texttable.version>
+        <texttable.version>0.0.2</texttable.version>
         <lombok.version>1.18.24</lombok.version>
         <annotations.version>23.0.0</annotations.version>
         <junit-jupiter-api.version>5.8.2</junit-jupiter-api.version>
